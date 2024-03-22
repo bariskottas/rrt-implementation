@@ -1,3 +1,4 @@
+import kdtree as kd #https://github.com/stefankoegl/kdtree
 import tkinter as tk
 
 from math import atan2
@@ -224,6 +225,9 @@ def L(node1, node2):
 
 def steer(node1, node2):
     if rxy(node1, node2) < 45:
+        return False
+    
+    if abs(node2.heading - node1.heading) >= 0.6:
         return False
     
     return True
