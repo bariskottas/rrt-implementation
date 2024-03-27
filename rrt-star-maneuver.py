@@ -72,7 +72,7 @@ class Node:
 
         self.id = id
         self.parent = parent
-
+    
 class Edge:
     node1:Node
     node2:Node
@@ -102,9 +102,11 @@ def drawCircle(canvas, x, y, color):
     canvas.pack()
     return a
 
-def createMap(canvas, nodes, obstacles):
+def createMap(canvas, nodes, kdNodes, obstacles):
     #create starting node
     nodes.append(Node(50, 50, len(nodes)))
+    kdNodes.add((50, 50))
+
     drawCircle(canvas, 50, 50, "black")
 
     #create obstacles
@@ -280,9 +282,13 @@ root.resizable(False, False)
 
 canvas = tk.Canvas(root, width = windowSize, height = windowSize)
 
-obstacles = []
 nodes = []
-createMap(canvas, nodes, obstacles)
+kdNodes = kd.create(dimensions=2)
+obstacles = []
+
+createMap(canvas, nodes, kdNodes, obstacles)
+
+balanceCounter = 0
 
 pathNotFound = True
 while True:
@@ -295,6 +301,13 @@ while True:
         node = replaceWithCloserNode(node, closestNode)
 
         if inObs(node):
+            continue
+
+        if balanceCounter > 20 and not kdNodes.is_balanced:
+            kdNodes = kdNodes.rebalance()
+            balanceCounter = 0
+
+        if len(kdNodes.search_nn_dist((node.x, node.y), 50)) >= 1:
             continue
 
         closestNode = replaceWithProximalNode(node, closestNode, nodes)
@@ -322,6 +335,7 @@ while True:
             continue
 
         nodes.append(node)
+        kdNodes.add((node.x, node.y))
         drawCircle(canvas, node.x, node.y, "red")
 
         drawArc(canvas, closestNode, node)
@@ -332,4 +346,6 @@ while True:
             currentNode = node.id
             while currentNode != 0:        
                 drawArc(canvas, nodes[nodes[currentNode].parent], nodes[currentNode], "darkgoldenrod1", 3)
-                currentNode = nodes[currentNode].parent    
+                currentNode = nodes[currentNode].parent
+        
+        balanceCounter += 1
