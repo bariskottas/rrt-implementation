@@ -229,7 +229,7 @@ def steer(node1, node2, pNode = None):
     if rxy(node1, node2) < 45:
         return False
     
-    #if pNode != None and (thetaL(pNode, node1) <= 0.05 or thetaL(node1, node2) <= 0.05) and (node2.heading - node1.heading) >= 0.05:
+    if pNode != None and (abs(thetaL(pNode, node1)) <= 0.03 or abs(thetaL(node1, node2)) <= 0.03) and abs(node2.heading - node1.heading) >= 0.03:
         return False
 
     #if pNode != None and abs(abs(thetaL(pNode, node1)) - abs(thetaL(node1, node2))) >= 0.1:
@@ -303,7 +303,7 @@ while True:
         if inObs(node):
             continue
 
-        if balanceCounter > 20 and not kdNodes.is_balanced:
+        if balanceCounter > 50 and not kdNodes.is_balanced:
             kdNodes = kdNodes.rebalance()
             balanceCounter = 0
 
