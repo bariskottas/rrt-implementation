@@ -2,7 +2,7 @@ import kdtree as kd #https://github.com/stefankoegl/kdtree
 import tkinter as tk
 
 from math import atan2
-from math import cos
+from math import degrees
 from math import sqrt
 from math import sin
 
@@ -223,28 +223,45 @@ def L(node1, node2):
 
     return distance(node1, node2) * tL / tmp
 
-def steer(node1, node2):
+def steer(node1, node2, pNode = None):
     if rxy(node1, node2) < 45:
         return False
     
-    if abs(node2.heading - node1.heading) >= 0.6:
+    #if pNode != None and (thetaL(pNode, node1) <= 0.05 or thetaL(node1, node2) <= 0.05) and (node2.heading - node1.heading) >= 0.05:
+        return False
+
+    #if pNode != None and abs(abs(thetaL(pNode, node1)) - abs(thetaL(node1, node2))) >= 0.1:
+        return False
+    
+    if abs(node2.heading - node1.heading) >= 1.2:
         return False
     
     return True
 
-def drawArc(canvas, node1, node2, fill = "black", width = 1):
-    t = node2.heading
-    d = rxy(node1, node2) - sqrt(rxy(node1, node2) ** 2 - (distance(node1, node2) / 2) ** 2)
-
+def drawArc(canvas, node1, node2, outline = "black", width = 1):
+    t = 2 * thetaL(node1, node2)
+    if t < 1e-10:
+        canvasItem = canvas.create_line(node1.x, node1.y, node2.x, node2.y, fill = outline, width = width)
+        canvas.pack()
+        return canvasItem
+    
+    r = rxy(node1, node2)
+    d = distance(node1, node2)
+    
     if node2.heading >= node1.heading:
-        midX = (node1.x + node2.x)/2 + d * sin(t)
-        midY = (node1.y + node2.y)/2 - d * cos(t)
+        midX = (node1.x + node2.x) / 2 + sqrt(r ** 2 - (d / 2) ** 2) * (node1.y - node2.y) / d 
+        midY = (node1.y + node2.y) / 2 + sqrt(r ** 2 - (d / 2) ** 2) * (node2.x - node1.x) / d 
     else:
-        midX = (node1.x + node2.x)/2 - d * sin(t)
-        midY = (node1.y + node2.y)/2 + d * cos(t)
+        midX = (node1.x + node2.x) / 2 - sqrt(r ** 2 - (d / 2) ** 2) * (node1.y - node2.y) / d 
+        midY = (node1.y + node2.y) / 2 - sqrt(r ** 2 - (d / 2) ** 2) * (node2.x - node1.x) / d 
 
-    canvas.create_line((node1.x, node1.y), (midX, midY), (node2.x, node2.y), smooth = True, fill = fill, width = width)
+    start = degrees(abs(atan2(node2.y - midY, node2.x - midX)))
+    if (midY < node2.y): 
+        start = -start
+
+    canvasItem = canvas.create_arc(midX - r, midY - r, midX + r, midY + r, start = start, extent = degrees(t), outline = outline, width = width, style = tk.ARC)
     canvas.pack()
+    return canvasItem
 
 root = tk.Tk()
 
@@ -283,7 +300,7 @@ while True:
         closestNode = replaceWithProximalNode(node, closestNode, nodes)
 
         node.cost = closestNode.cost + L(closestNode, node)
-        node.heading = atan2(node.y - closestNode.y, node.x - closestNode.x)
+        node.heading = closestNode.heading + 2 * thetaL(closestNode, node)
         node.parent = closestNode.id
         
         minDistanceToAnyObstacle = float('inf')
@@ -295,8 +312,13 @@ while True:
 
         if minDistanceToAnyObstacle < 30:
             continue
+        
+        if closestNode.parent != -1:
+            steerResult = steer(closestNode, node, nodes[closestNode.parent])
+        else:
+            steerResult = steer(closestNode, node)
 
-        if not steer(closestNode, node):
+        if not steerResult:   
             continue
 
         nodes.append(node)
@@ -310,4 +332,4 @@ while True:
             currentNode = node.id
             while currentNode != 0:        
                 drawArc(canvas, nodes[nodes[currentNode].parent], nodes[currentNode], "darkgoldenrod1", 3)
-                currentNode = nodes[currentNode].parent
+                currentNode = nodes[currentNode].parent    
