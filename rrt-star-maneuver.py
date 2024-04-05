@@ -3,10 +3,13 @@ import tkinter as tk
 
 from math import atan2
 from math import degrees
+from math import pi
 from math import sqrt
 from math import sin
 
 from random import randint
+
+from time import sleep
 
 def dot(v,w):
     x,y,z = v
@@ -229,14 +232,9 @@ def steer(node1, node2, pNode = None):
     if rxy(node1, node2) < 45:
         return False
     
-    if pNode != None and (abs(thetaL(pNode, node1)) <= 0.03 or abs(thetaL(node1, node2)) <= 0.03) and abs(node2.heading - node1.heading) >= 0.03:
-        return False
-
-    #if pNode != None and abs(abs(thetaL(pNode, node1)) - abs(thetaL(node1, node2))) >= 0.1:
-        return False
-    
-    if abs(node2.heading - node1.heading) >= 1.2:
-        return False
+    if pNode != None:
+        if (node2.heading - pNode.heading) > 0.05 and abs(rxy(pNode, node1) - rxy(node1, node2)) <= 0.1:
+            return False
     
     return True
 
@@ -313,7 +311,14 @@ while True:
         closestNode = replaceWithProximalNode(node, closestNode, nodes)
 
         node.cost = closestNode.cost + L(closestNode, node)
-        node.heading = closestNode.heading + 2 * thetaL(closestNode, node)
+        if closestNode.heading >= 0 and node.x > closestNode.x:
+            node.heading = 2 * thetaL(closestNode, node) + abs(closestNode.heading)
+        elif closestNode.heading >= 0 and node.x < closestNode.x:
+            node.heading = 2 * thetaL(closestNode, node) + abs(closestNode.heading)
+        elif closestNode.heading < 0 and node.x > closestNode.x:
+            node.heading = 2 * thetaL(closestNode, node) - abs(closestNode.heading)
+        elif closestNode.heading < 0 and node.x < closestNode.x:
+            node.heading = -(2 * thetaL(closestNode, node) - abs(closestNode.heading))
         node.parent = closestNode.id
         
         minDistanceToAnyObstacle = float('inf')
