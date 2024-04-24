@@ -159,24 +159,28 @@ def thetaL(node1, node2):
     return atan2(node2.y - node1.y, node2.x - node1.x) - node1.heading
 
 def rxy(node1, node2):
-    tmp = abs(2 * sin(thetaL(node1, node2)))
+    tmp = 2 * sin(abs(thetaL(node1, node2)))
     if tmp == 0:
-        return float('inf')
+        return float('inf') 
     
     return distance(node1, node2) / tmp
 
 def L(node1, node2):
     tL = thetaL(node1, node2)
 
-    tmp = sin(tL)
+    tmp =  sin(tL)
     if tmp == 0:
         return float('inf') 
 
     return distance(node1, node2) * tL / tmp
 
-def steer(node1, node2):
-    if rxy(node1, node2) < 75:
+def steer(node1, node2, pNode = None):
+    if rxy(node1, node2) < 45:
         return False
+    
+    if pNode != None:
+        if (node2.heading - pNode.heading) > 0.05 and abs(rxy(pNode, node1) - rxy(node1, node2)) <= 0.1:
+            return False
     
     return True
 
@@ -195,25 +199,26 @@ def findCenter(node1, node2):
 
 def drawArc(canvas, node1, node2, outline = "black", width = 1):
     t = 2 * thetaL(node1, node2)
-    if abs(t) < 1e-4:
+    if t < 1e-10:
         canvasItem = canvas.create_line(node1.x, node1.y, node2.x, node2.y, fill = outline, width = width)
         canvas.pack()
         return canvasItem
-
-    extent = degrees(t)
-    if extent > 180:
-        return drawArc(canvas, node2, node1, outline, width)
-
-    center = findCenter(node1, node2)
-    # print("x ", center.x)
-    # print("y ", center.y)
+    
     r = rxy(node1, node2)
-    # print("r ", r)
-    start = degrees(atan2(center.y - node2.y, center.x - node2.x)) 
-    # print("s ", start)
-    # print("e ", extent)
+    d = distance(node1, node2)
+    
+    if node2.heading >= node1.heading:
+        midX = (node1.x + node2.x) / 2 + sqrt(r ** 2 - (d / 2) ** 2) * (node1.y - node2.y) / d 
+        midY = (node1.y + node2.y) / 2 + sqrt(r ** 2 - (d / 2) ** 2) * (node2.x - node1.x) / d 
+    else:
+        midX = (node1.x + node2.x) / 2 - sqrt(r ** 2 - (d / 2) ** 2) * (node1.y - node2.y) / d 
+        midY = (node1.y + node2.y) / 2 - sqrt(r ** 2 - (d / 2) ** 2) * (node2.x - node1.x) / d 
 
-    canvasItem = canvas.create_arc(center.x - r, center.y - r, center.x + r, center.y + r, start = start, extent = -extent, outline = outline, width = width, style = tk.ARC)
+    start = degrees(abs(atan2(node2.y - midY, node2.x - midX)))
+    if (midY < node2.y): 
+        start = -start
+
+    canvasItem = canvas.create_arc(midX - r, midY - r, midX + r, midY + r, start = start, extent = degrees(t), outline = outline, width = width, style = tk.ARC)
     canvas.pack()
     return canvasItem
 
@@ -239,14 +244,6 @@ obstacles = []
 
 createMap(canvas, nodes, obstacles)
 
-# drawCircle(canvas, 50, 50, "red")
-# drawCircle(canvas, 50, 100, "red")
-# drawCircle(canvas, 100, 50, "red")
-# drawCircle(canvas, 100, 100, "red")
-
-# drawArc(canvas, Node(50, 50), Node(100, 100))
-# drawArc(canvas, Node(100, 50), Node(50, 100))
-
 pathNotFound = True
 while True:
     root.winfo_exists()
@@ -255,7 +252,7 @@ while True:
     if pathNotFound:
         node = Node(randint(0, windowSize), randint(0, windowSize), len(nodes))
         closestNode = findClosestNode(nodes, node)
-        node = replaceWithCloserNode(node, closestNode)
+        # node = replaceWithCloserNode(node, closestNode)
 
         if inObs(node):
             continue
@@ -270,6 +267,7 @@ while True:
 
         center = findCenter(closestNode, node)
 
+        # gözden geçir
         tmp = atan2(node.y - center.y, node.x - center.x)
         if tmp > 0:
             node.heading = tmp + pi / 2
@@ -306,3 +304,4 @@ while True:
             while currentNode != 0:        
                 drawArc(canvas, nodes[nodes[currentNode].parent], nodes[currentNode], "darkgoldenrod1", 3)
                 currentNode = nodes[currentNode].parent
+        
