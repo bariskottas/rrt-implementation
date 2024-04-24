@@ -1,21 +1,67 @@
+import kdtree as kd #https://github.com/stefankoegl/kdtree
 import tkinter as tk
 
 from math import atan2
-from math import cos
 from math import degrees
-from math import dist
 from math import pi
-from math import sin
 from math import sqrt
+from math import sin
 
 from random import randint
+
+from time import sleep
+
+def dot(v,w):
+    x,y,z = v
+    X,Y,Z = w
+    return x*X + y*Y + z*Z
+
+def length(v):
+    x,y,z = v
+    return sqrt(x*x + y*y + z*z)
+
+def vector(b,e):
+    x,y,z = b
+    X,Y,Z = e
+    return (X-x, Y-y, Z-z)
+
+def unit(v):
+    x,y,z = v
+    mag = length(v)
+    return (x/mag, y/mag, z/mag)
+
+def distance2(p0,p1):
+    return length(vector(p0,p1))
+
+def scale(v,sc):
+    x,y,z = v
+    return (x * sc, y * sc, z * sc)
+
+def add(v,w):
+    x,y,z = v
+    X,Y,Z = w
+    return (x+X, y+Y, z+Z)
+
+def pnt2line(pnt, start, end):
+    line_vec = vector(start, end)
+    pnt_vec = vector(start, pnt)
+    line_len = length(line_vec)
+    line_unitvec = unit(line_vec)
+    pnt_vec_scaled = scale(pnt_vec, 1.0/line_len)
+    t = dot(line_unitvec, pnt_vec_scaled)    
+    if t < 0.0:
+        t = 0.0
+    elif t > 1.0:
+        t = 1.0
+    nearest = scale(line_vec, t)
+    dist = distance2(nearest, pnt_vec)
+    nearest = add(nearest, start)
+    return (dist, nearest)
 
 class Node:
     x:int
     y:int
     cost:int
-    
-    isLower:bool
     heading:float
 
     id:int
@@ -43,22 +89,30 @@ class Shape:
 
     def __init__(self, edges):
         self.edges = edges
+    
+    def distanceTo(self, node):
+        result = float('inf')
 
-    def intersects(self, edge):
-        return False
+        for shapeEdge in self.edges:
+            distanceToShapeEdge = pnt2line((node.x, node.y, 0), (shapeEdge.node1.x, shapeEdge.node1.y, 0), (shapeEdge.node2.x, shapeEdge.node2.y, 0))[0]
+            if distanceToShapeEdge < result:
+                result = distanceToShapeEdge
+
+        return result
     
 def drawCircle(canvas, x, y, color):
     a = canvas.create_oval(x - 4, y - 4, x + 4, y + 4, outline = color, fill = color, width = 0)
     canvas.pack()
     return a
 
-def createMap(canvas, nodes, obstacles):
+def createMap(canvas, nodes, kdNodes, obstacles):
     #create starting node
     nodes.append(Node(50, 50, len(nodes)))
+    kdNodes.add((50, 50))
 
     drawCircle(canvas, 50, 50, "black")
 
-    #create obstacles add to inObs
+    #create obstacles
     snode1 = Node(500, 400)
     snode2 = Node(325, 550)
     snode3 = Node(675, 550)
@@ -120,7 +174,7 @@ def inGoal(node):
     return False
 
 def distance(node1, node2):
-    return dist((node1.x, node1.y), (node2.x, node2.y))
+    return sqrt((node2.x - node1.x) ** 2 + (node2.y - node1.y) ** 2)
 
 def findClosestNode(nodes, node):
     closestDist = float('inf')
@@ -140,17 +194,17 @@ def findClosestNode(nodes, node):
 def replaceWithCloserNode(node, closestNode):
     dist = distance(closestNode, node)
 
-    if dist <= 50:
+    if dist <= 20:
         return node
     
-    ratio = 50 / dist
+    ratio = 20 / dist
 
     return Node((1 - ratio) * closestNode.x + ratio * node.x, (1 - ratio) * closestNode.y + ratio * node.y, node.id)
 
 def replaceWithProximalNode(node, closestNode, nodes):
     proximalNode = closestNode
     for possibleProximalNode in nodes:
-        if possibleProximalNode.cost < proximalNode.cost and distance(possibleProximalNode, node) <= 150:
+        if possibleProximalNode.cost < proximalNode.cost and distance(possibleProximalNode, node) <= 60:
             proximalNode = possibleProximalNode
     
     return proximalNode
@@ -183,19 +237,6 @@ def steer(node1, node2, pNode = None):
             return False
     
     return True
-
-def findCenter(node1, node2):
-    r = rxy(node1, node2)
-    d = distance(node1, node2)
-    
-    if thetaL(node1, node2) >= 0:
-        midX = (node1.x + node2.x) / 2 - sqrt(r ** 2 - (d / 2) ** 2) * (node1.y - node2.y) / d 
-        midY = (node1.y + node2.y) / 2 - sqrt(r ** 2 - (d / 2) ** 2) * (node2.x - node1.x) / d
-    else:        
-        midX = (node1.x + node2.x) / 2 + sqrt(r ** 2 - (d / 2) ** 2) * (node1.y - node2.y) / d 
-        midY = (node1.y + node2.y) / 2 + sqrt(r ** 2 - (d / 2) ** 2) * (node2.x - node1.x) / d 
-
-    return Node(midX, midY)
 
 def drawArc(canvas, node1, node2, outline = "black", width = 1):
     t = 2 * thetaL(node1, node2)
@@ -240,9 +281,12 @@ root.resizable(False, False)
 canvas = tk.Canvas(root, width = windowSize, height = windowSize)
 
 nodes = []
+kdNodes = kd.create(dimensions=2)
 obstacles = []
 
-createMap(canvas, nodes, obstacles)
+createMap(canvas, nodes, kdNodes, obstacles)
+
+balanceCounter = 0
 
 pathNotFound = True
 while True:
@@ -252,49 +296,53 @@ while True:
     if pathNotFound:
         node = Node(randint(0, windowSize), randint(0, windowSize), len(nodes))
         closestNode = findClosestNode(nodes, node)
-        # node = replaceWithCloserNode(node, closestNode)
+        node = replaceWithCloserNode(node, closestNode)
 
         if inObs(node):
             continue
 
+        if balanceCounter > 50 and not kdNodes.is_balanced:
+            kdNodes = kdNodes.rebalance()
+            balanceCounter = 0
+
+        if len(kdNodes.search_nn_dist((node.x, node.y), 50)) >= 1:
+            continue
+
         closestNode = replaceWithProximalNode(node, closestNode, nodes)
+
+        node.cost = closestNode.cost + L(closestNode, node)
+        if closestNode.heading >= 0 and node.x > closestNode.x:
+            node.heading = 2 * thetaL(closestNode, node) + abs(closestNode.heading)
+        elif closestNode.heading >= 0 and node.x < closestNode.x:
+            node.heading = 2 * thetaL(closestNode, node) + abs(closestNode.heading)
+        elif closestNode.heading < 0 and node.x > closestNode.x:
+            node.heading = 2 * thetaL(closestNode, node) - abs(closestNode.heading)
+        elif closestNode.heading < 0 and node.x < closestNode.x:
+            node.heading = -(2 * thetaL(closestNode, node) - abs(closestNode.heading))
+        node.parent = closestNode.id
         
-        steerResult = steer(closestNode, node)
+        minDistanceToAnyObstacle = float('inf')
+        for obstacle in obstacles:
+            if type(obstacle) == Shape:
+                distanceToObstacle = obstacle.distanceTo(node)
+                if distanceToObstacle < minDistanceToAnyObstacle:
+                    minDistanceToAnyObstacle = distanceToObstacle
+
+        if minDistanceToAnyObstacle < 30:
+            continue
+        
+        if closestNode.parent != -1:
+            steerResult = steer(closestNode, node, nodes[closestNode.parent])
+        else:
+            steerResult = steer(closestNode, node)
+
         if not steerResult:   
             continue
 
-        node.cost = closestNode.cost + L(closestNode, node)
-
-        center = findCenter(closestNode, node)
-
-        # gözden geçir
-        tmp = atan2(node.y - center.y, node.x - center.x)
-        if tmp > 0:
-            node.heading = tmp + pi / 2
-        else:
-            node.heading = tmp - pi / 2
-        
-        if node.heading >= pi - 0.001:
-            node.heading -= pi
-
-        if node.heading <= -pi + 0.001:
-            node.heading += pi
-        
-        node.parent = closestNode.id
-
-        edge = Edge(closestNode, node)
-        intersectionExists = False
-        for obstacle in obstacles:
-            if type(obstacle) == Shape and obstacle.intersects(edge):
-                intersectionExists = True
-                break
-
-        if intersectionExists:
-            continue
-
         nodes.append(node)
-
+        kdNodes.add((node.x, node.y))
         drawCircle(canvas, node.x, node.y, "red")
+
         drawArc(canvas, closestNode, node)
 
         if inGoal(node):
@@ -305,3 +353,4 @@ while True:
                 drawArc(canvas, nodes[nodes[currentNode].parent], nodes[currentNode], "darkgoldenrod1", 3)
                 currentNode = nodes[currentNode].parent
         
+        balanceCounter += 1
