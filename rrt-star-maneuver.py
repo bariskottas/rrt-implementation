@@ -65,22 +65,16 @@ class Shape:
             center = findCenter(edge.node1, edge.node2)
             r = rxy(edge.node1, edge.node2)
 
-            for shapeEdge in self.edges:
+            sa = atan2(edge.node1.y - center.y, edge.node1.x - center.x)
+            ea = atan2(edge.node2.y - center.y, edge.node2.x - center.x)
+
+            for i, shapeEdge in enumerate(self.edges):
                 dx = shapeEdge.node2.x - shapeEdge.node1.x
                 dy = shapeEdge.node2.y - shapeEdge.node1.y
 
                 aDet = dx * dx + dy * dy
                 bDet = 2 * (dx * (shapeEdge.node1.x - center.x) + dy * (shapeEdge.node1.y - center.y))
                 cDet = (shapeEdge.node1.x - center.x) * (shapeEdge.node1.x - center.x) + (shapeEdge.node1.y - center.y) * (shapeEdge.node1.y - center.y) - r * r
-
-                t1 = atan2(edge.node1.y - center.y, edge.node1.x - center.x)
-                t2 = atan2(edge.node2.y - center.y, edge.node2.x - center.x)
-                if (t1 - t2) - 2 * thetaL(edge.node1, edge.node2) < 0.01:
-                    ga = t2
-                    sa = t1
-                else:
-                    ga = t1
-                    sa = t2
 
                 if shapeEdge.node1.x > shapeEdge.node2.x:
                     gx = shapeEdge.node1.x
@@ -97,31 +91,38 @@ class Shape:
                     sy = shapeEdge.node1.y
 
                 det = bDet ** 2 - 4 * aDet * cDet
+                
                 if aDet <= 0.0000001 or det < 0:
                     continue
 
-                if det == 0:
+                elif det == 0:
                     t = -bDet / (2 * aDet)
                     intersection1 = Node(shapeEdge.node1.x + t * dx, shapeEdge.node1.y + t * dy)
                     if sx <= intersection1.x <= gx and sy <= intersection1.y <= gy:          
                         ai1 = atan2(intersection1.y - center.y, intersection1.x - center.x)
-                        if sa <= ai1 <= ga:
-                            return True
+                        if sa <= ai1 <= ea:
+                            drawCircle(canvas,intersection1.x, intersection1.y, "green")
+                        else:
+                            print(sa, ai1, ea)
        
-                if det != 0:
+                else:
                     t = (-bDet + sqrt(det)) / (2 * aDet)
                     intersection1 = Node(shapeEdge.node1.x + t * dx, shapeEdge.node1.y + t * dy)
                     if sx <= intersection1.x <= gx and sy <= intersection1.y <= gy:
                         ai1 = atan2(intersection1.y - center.y, intersection1.x - center.x)
-                        if sa <= ai1 <= ga:
-                            return True
+                        if sa <= ai1 <= ea:
+                            drawCircle(canvas,intersection1.x, intersection1.y, "green")
+                        else:
+                            print(i, 1, sa, ai1, ea)
 
                     t = (-bDet - sqrt(det)) / (2 * aDet)
                     intersection2 = Node(shapeEdge.node1.x + t * dx, shapeEdge.node1.y + t * dy)
                     if sx <= intersection2.x <= gx and sy <= intersection2.y <= gy:
                         ai2 = atan2(intersection2.y - center.y, intersection2.x - center.x)
-                        if sa <= ai2 <= ga:
-                            return True
+                        if sa <= ai2 <= ea:
+                            drawCircle(canvas,intersection2.x, intersection2.y, "green")
+                        else:
+                            print(i, 2, sa, ai2, ea)
                  
         return False
     
