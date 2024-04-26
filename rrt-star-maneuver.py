@@ -1,6 +1,7 @@
 import tkinter as tk
 
 from math import atan2
+from math import cos
 from math import degrees
 from math import dist
 from math import pi
@@ -44,21 +45,84 @@ class Shape:
         self.edges = edges
 
     def intersects(self, edge):
-        for shapeEdge in self.edges:
-            denom = (shapeEdge.node2.y - shapeEdge.node1.y) * (edge.node2.x - edge.node1.x) - (shapeEdge.node2.x - shapeEdge.node1.x) * (edge.node2.y - edge.node1.y)
-            if denom == 0:
-                continue
+        t = 2 * thetaL(edge.node1, edge.node2)
+        if abs(t) < 1e-4:
+            for shapeEdge in self.edges:
+                denom = (shapeEdge.node2.y - shapeEdge.node1.y) * (edge.node2.x - edge.node1.x) - (shapeEdge.node2.x - shapeEdge.node1.x) * (edge.node2.y - edge.node1.y)
+                if denom == 0:
+                    continue
 
-            ua = ((shapeEdge.node2.x - shapeEdge.node1.x) * (edge.node1.y - shapeEdge.node1.y) - (shapeEdge.node2.y - shapeEdge.node1.y) * (edge.node1.x - shapeEdge.node1.x)) / denom
-            if ua < 0 or ua > 1:
-                continue
+                ua = ((shapeEdge.node2.x - shapeEdge.node1.x) * (edge.node1.y - shapeEdge.node1.y) - (shapeEdge.node2.y - shapeEdge.node1.y) * (edge.node1.x - shapeEdge.node1.x)) / denom
+                if ua < 0 or ua > 1:
+                    continue
 
-            ub = ((edge.node2.x - edge.node1.x) * (edge.node1.y - shapeEdge.node1.y) - (edge.node2.y - edge.node1.y) * (edge.node1.x - shapeEdge.node1.x)) / denom
-            if ub < 0 or ub > 1:
-                continue
+                ub = ((edge.node2.x - edge.node1.x) * (edge.node1.y - shapeEdge.node1.y) - (edge.node2.y - edge.node1.y) * (edge.node1.x - shapeEdge.node1.x)) / denom
+                if ub < 0 or ub > 1:
+                    continue
 
-            return True
-        
+                return True
+        else:
+            center = findCenter(edge.node1, edge.node2)
+            r = rxy(edge.node1, edge.node2)
+
+            for shapeEdge in self.edges:
+                dx = shapeEdge.node2.x - shapeEdge.node1.x
+                dy = shapeEdge.node2.y - shapeEdge.node1.y
+
+                aDet = dx * dx + dy * dy
+                bDet = 2 * (dx * (shapeEdge.node1.x - center.x) + dy * (shapeEdge.node1.y - center.y))
+                cDet = (shapeEdge.node1.x - center.x) * (shapeEdge.node1.x - center.x) + (shapeEdge.node1.y - center.y) * (shapeEdge.node1.y - center.y) - r * r
+
+                t1 = atan2(edge.node1.y - center.y, edge.node1.x - center.x)
+                t2 = atan2(edge.node2.y - center.y, edge.node2.x - center.x)
+                if (t1 - t2) - 2 * thetaL(edge.node1, edge.node2) < 0.01:
+                    ga = t2
+                    sa = t1
+                else:
+                    ga = t1
+                    sa = t2
+
+                if shapeEdge.node1.x > shapeEdge.node2.x:
+                    gx = shapeEdge.node1.x
+                    sx = shapeEdge.node2.x
+                else:
+                    gx = shapeEdge.node2.x
+                    sx = shapeEdge.node1.x
+
+                if shapeEdge.node1.y > shapeEdge.node2.y:
+                    gy = shapeEdge.node1.y
+                    sy = shapeEdge.node2.y
+                else:
+                    gy = shapeEdge.node2.y
+                    sy = shapeEdge.node1.y
+
+                det = bDet ** 2 - 4 * aDet * cDet
+                if aDet <= 0.0000001 or det < 0:
+                    continue
+
+                if det == 0:
+                    t = -bDet / (2 * aDet)
+                    intersection1 = Node(shapeEdge.node1.x + t * dx, shapeEdge.node1.y + t * dy)
+                    if sx <= intersection1.x <= gx and sy <= intersection1.y <= gy:          
+                        ai1 = atan2(intersection1.y - center.y, intersection1.x - center.x)
+                        if sa <= ai1 <= ga:
+                            return True
+       
+                if det != 0:
+                    t = (-bDet + sqrt(det)) / (2 * aDet)
+                    intersection1 = Node(shapeEdge.node1.x + t * dx, shapeEdge.node1.y + t * dy)
+                    if sx <= intersection1.x <= gx and sy <= intersection1.y <= gy:
+                        ai1 = atan2(intersection1.y - center.y, intersection1.x - center.x)
+                        if sa <= ai1 <= ga:
+                            return True
+
+                    t = (-bDet - sqrt(det)) / (2 * aDet)
+                    intersection2 = Node(shapeEdge.node1.x + t * dx, shapeEdge.node1.y + t * dy)
+                    if sx <= intersection2.x <= gx and sy <= intersection2.y <= gy:
+                        ai2 = atan2(intersection2.y - center.y, intersection2.x - center.x)
+                        if sa <= ai2 <= ga:
+                            return True
+                 
         return False
     
 def drawCircle(canvas, x, y, color):
@@ -72,7 +136,6 @@ def createMap(canvas, nodes, obstacles):
     drawCircle(canvas, 50, 50, "black")
 
     #create obstacles
-
     snode1 = Node(150, 150)
     snode2 = Node(400, 150)
     snode3 = Node(150, 400)
@@ -188,30 +251,6 @@ def steer(node1, node2):
 
     if L(node1, node2) > pi * rxy(node1, node2):
         return False
-    
-    # center = findCenter(node1, node2)
-
-    # tmp = atan2(node1.y - center.y, node1.x - center.x)
-    # if tmp >= 0:
-    #     if node2.x > node1.x:
-    #         heading = tmp - pi / 2
-    #     else:
-    #         heading = tmp + pi / 2
-    # else:
-    #     if node2.x > node1.x:
-    #         heading = tmp + pi / 2
-    #     else:
-    #         heading = tmp - pi / 2
-
-    # if heading >= pi - 0.001:
-    #     heading -= pi
-
-    # if heading <= -pi + 0.001:
-    #     heading += pi
-
-    # if abs(heading - node1.heading) >= 0.1:
-    #     print("beyza")
-    #     return False
 
     return True
 
@@ -284,6 +323,17 @@ while True:
         closestNode = replaceWithProximalNode(node, closestNode, nodes)
         edge = Edge(closestNode, node)
 
+        node.cost = closestNode.cost + L(closestNode, node)
+
+        node.heading = closestNode.heading + 2 * thetaL(closestNode, node)
+        if node.heading > pi:
+            node.heading -= pi
+
+        if node.heading < -pi:
+            node.heading += pi
+
+        node.parent = closestNode.id
+
         intersectionExists = False
         for obstacle in obstacles:
             if type(obstacle) == Shape and obstacle.intersects(edge):
@@ -292,17 +342,6 @@ while True:
 
         if intersectionExists:
             continue
-
-        node.cost = closestNode.cost + L(closestNode, node)
-
-        node.heading = closestNode.heading + 2 * thetaL(closestNode, node)
-        if node.heading >= pi - 0.001:
-            node.heading -= pi
-
-        if node.heading <= -pi + 0.001:
-            node.heading += pi
-
-        node.parent = closestNode.id
 
         steerResult = steer(closestNode, node)
         if not steerResult:   
