@@ -101,7 +101,7 @@ class Shape:
                     if sx <= intersection1.x <= gx and sy <= intersection1.y <= gy:          
                         ai1 = atan2(intersection1.y - center.y, intersection1.x - center.x)
                         if sa <= ai1 <= ea:
-                            drawCircle(canvas,intersection1.x, intersection1.y, "green")
+                            return True
                         else:
                             print(sa, ai1, ea)
        
@@ -111,7 +111,7 @@ class Shape:
                     if sx <= intersection1.x <= gx and sy <= intersection1.y <= gy:
                         ai1 = atan2(intersection1.y - center.y, intersection1.x - center.x)
                         if sa <= ai1 <= ea:
-                            drawCircle(canvas,intersection1.x, intersection1.y, "green")
+                            return True
                         else:
                             print(i, 1, sa, ai1, ea)
 
@@ -120,7 +120,7 @@ class Shape:
                     if sx <= intersection2.x <= gx and sy <= intersection2.y <= gy:
                         ai2 = atan2(intersection2.y - center.y, intersection2.x - center.x)
                         if sa <= ai2 <= ea:
-                            drawCircle(canvas,intersection2.x, intersection2.y, "green")
+                            return True
                         else:
                             print(i, 2, sa, ai2, ea)
                  
