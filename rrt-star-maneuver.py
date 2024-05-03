@@ -45,6 +45,7 @@ class Shape:
         self.edges = edges
 
     def intersects(self, edge):
+        input()
         t = 2 * thetaL(edge.node1, edge.node2)
         if abs(t) < 1e-4:
             for shapeEdge in self.edges:
@@ -65,10 +66,10 @@ class Shape:
             center = findCenter(edge.node1, edge.node2)
             r = rxy(edge.node1, edge.node2)
 
-            sa = atan2(edge.node1.y - center.y, edge.node1.x - center.x)
+            sa = atan2(edge.node1.y - center.y, edge.node1.x - center.x)      
             ea = atan2(edge.node2.y - center.y, edge.node2.x - center.x)
 
-            for i, shapeEdge in enumerate(self.edges):
+            for shapeEdge in self.edges:
                 dx = shapeEdge.node2.x - shapeEdge.node1.x
                 dy = shapeEdge.node2.y - shapeEdge.node1.y
 
@@ -97,32 +98,35 @@ class Shape:
 
                 elif det == 0:
                     t = -bDet / (2 * aDet)
-                    intersection1 = Node(shapeEdge.node1.x + t * dx, shapeEdge.node1.y + t * dy)
-                    if sx <= intersection1.x <= gx and sy <= intersection1.y <= gy:          
-                        ai1 = atan2(intersection1.y - center.y, intersection1.x - center.x)
-                        if sa <= ai1 <= ea:
-                            return True
-                        else:
-                            print(sa, ai1, ea)
+                    if 0 <= t <= 1:
+                        intersection1 = Node(shapeEdge.node1.x + t * dx, shapeEdge.node1.y + t * dy)
+                        if sx <= intersection1.x <= gx and sy <= intersection1.y <= gy:          
+                            ai1 = atan2(intersection1.y - center.y, intersection1.x - center.x)
+                            if sa <= ai1 <= ea:
+                                return True
+                            else:
+                                drawCircle(canvas, intersection1.x, intersection1.y, "green")
        
                 else:
                     t = (-bDet + sqrt(det)) / (2 * aDet)
-                    intersection1 = Node(shapeEdge.node1.x + t * dx, shapeEdge.node1.y + t * dy)
-                    if sx <= intersection1.x <= gx and sy <= intersection1.y <= gy:
-                        ai1 = atan2(intersection1.y - center.y, intersection1.x - center.x)
-                        if sa <= ai1 <= ea:
-                            return True
-                        else:
-                            print(i, 1, sa, ai1, ea)
+                    if 0 <= t <= 1:
+                        intersection1 = Node(shapeEdge.node1.x + t * dx, shapeEdge.node1.y + t * dy)
+                        if sx <= intersection1.x <= gx and sy <= intersection1.y <= gy:
+                            ai1 = atan2(intersection1.y - center.y, intersection1.x - center.x)
+                            if sa <= ai1 <= ea:
+                                return True
+                            else:
+                                drawCircle(canvas, intersection1.x, intersection1.y, "green")
 
                     t = (-bDet - sqrt(det)) / (2 * aDet)
-                    intersection2 = Node(shapeEdge.node1.x + t * dx, shapeEdge.node1.y + t * dy)
-                    if sx <= intersection2.x <= gx and sy <= intersection2.y <= gy:
-                        ai2 = atan2(intersection2.y - center.y, intersection2.x - center.x)
-                        if sa <= ai2 <= ea:
-                            return True
-                        else:
-                            print(i, 2, sa, ai2, ea)
+                    if 0 <= t <= 1:
+                        intersection2 = Node(shapeEdge.node1.x + t * dx, shapeEdge.node1.y + t * dy)
+                        if sx <= intersection2.x <= gx and sy <= intersection2.y <= gy:
+                            ai2 = atan2(intersection2.y - center.y, intersection2.x - center.x)
+                            if sa <= ai2 <= ea:
+                                return True
+                            else:
+                                drawCircle(canvas, intersection2.x, intersection2.y, "green")
                  
         return False
     
