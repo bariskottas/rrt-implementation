@@ -14,8 +14,6 @@ class Node:
     x:int
     y:int
     cost:int
-    
-    isLower:bool
     heading:float
 
     id:int
@@ -107,10 +105,9 @@ class Shape:
                     if 0 <= t <= 1:
                         intersection1 = Node(shapeEdge.node1.x + t * dx, shapeEdge.node1.y + t * dy)
                         if sx <= intersection1.x <= gx and sy <= intersection1.y <= gy:          
-                            ai1 = atan2(intersection1.y - center.y, intersection1.x - center.x)
-                            if ai1 < 0:
-                                ai1 += 2 * pi
-                            
+                            i1Extent = 2 * thetaL(edge.node1, intersection1)
+                            ai1 = sa + i1Extent
+
                             if extent > 0:
                                 if sa <= ai1 <= ea:
                                     return True
@@ -123,9 +120,8 @@ class Shape:
                     if 0 <= t <= 1:
                         intersection1 = Node(shapeEdge.node1.x + t * dx, shapeEdge.node1.y + t * dy)
                         if sx <= intersection1.x <= gx and sy <= intersection1.y <= gy:
-                            ai1 = atan2(intersection1.y - center.y, intersection1.x - center.x)
-                            if ai1 < 0:
-                                ai1 += 2 * pi
+                            i1Extent = 2 * thetaL(edge.node1, intersection1)
+                            ai1 = sa + i1Extent
                                                         
                             if extent > 0:
                                 if sa <= ai1 <= ea:
@@ -138,10 +134,9 @@ class Shape:
                     if 0 <= t <= 1:
                         intersection2 = Node(shapeEdge.node1.x + t * dx, shapeEdge.node1.y + t * dy)
                         if sx <= intersection2.x <= gx and sy <= intersection2.y <= gy:
-                            ai2 = atan2(intersection2.y - center.y, intersection2.x - center.x)
-                            if ai2 < 0:
-                                ai2 += 2 * pi
-
+                            i2Extent = 2 * thetaL(edge.node1, intersection2)
+                            ai2 = sa + i2Extent
+                                                        
                             if extent > 0:
                                 if sa <= ai2 <= ea:
                                     return True
