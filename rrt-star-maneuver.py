@@ -34,6 +34,9 @@ class Edge:
     node1:Node
     node2:Node
 
+    start:float
+    extent:float
+
     def __init__(self, node1, node2):
         self.node1 = node1
         self.node2 = node2
@@ -45,7 +48,6 @@ class Shape:
         self.edges = edges
 
     def intersects(self, edge):
-        input()
         t = 2 * thetaL(edge.node1, edge.node2)
         if abs(t) < 1e-4:
             for shapeEdge in self.edges:
@@ -66,8 +68,12 @@ class Shape:
             center = findCenter(edge.node1, edge.node2)
             r = rxy(edge.node1, edge.node2)
 
-            sa = atan2(edge.node1.y - center.y, edge.node1.x - center.x)      
-            ea = atan2(edge.node2.y - center.y, edge.node2.x - center.x)
+            sa = atan2(edge.node1.y - center.y, edge.node1.x - center.x)
+            if sa < 0:
+                sa += 2 * pi
+
+            extent = 2 * thetaL(edge.node1, edge.node2)
+            ea = sa + extent
 
             for shapeEdge in self.edges:
                 dx = shapeEdge.node2.x - shapeEdge.node1.x
@@ -102,10 +108,15 @@ class Shape:
                         intersection1 = Node(shapeEdge.node1.x + t * dx, shapeEdge.node1.y + t * dy)
                         if sx <= intersection1.x <= gx and sy <= intersection1.y <= gy:          
                             ai1 = atan2(intersection1.y - center.y, intersection1.x - center.x)
-                            if sa <= ai1 <= ea:
-                                return True
+                            if ai1 < 0:
+                                ai1 += 2 * pi
+                            
+                            if extent > 0:
+                                if sa <= ai1 <= ea:
+                                    return True
                             else:
-                                drawCircle(canvas, intersection1.x, intersection1.y, "green")
+                                if ea <= ai1 <= sa:
+                                    return True
        
                 else:
                     t = (-bDet + sqrt(det)) / (2 * aDet)
@@ -113,21 +124,31 @@ class Shape:
                         intersection1 = Node(shapeEdge.node1.x + t * dx, shapeEdge.node1.y + t * dy)
                         if sx <= intersection1.x <= gx and sy <= intersection1.y <= gy:
                             ai1 = atan2(intersection1.y - center.y, intersection1.x - center.x)
-                            if sa <= ai1 <= ea:
-                                return True
+                            if ai1 < 0:
+                                ai1 += 2 * pi
+                                                        
+                            if extent > 0:
+                                if sa <= ai1 <= ea:
+                                    return True
                             else:
-                                drawCircle(canvas, intersection1.x, intersection1.y, "green")
+                                if ea <= ai1 <= sa:
+                                    return True
 
                     t = (-bDet - sqrt(det)) / (2 * aDet)
                     if 0 <= t <= 1:
                         intersection2 = Node(shapeEdge.node1.x + t * dx, shapeEdge.node1.y + t * dy)
                         if sx <= intersection2.x <= gx and sy <= intersection2.y <= gy:
                             ai2 = atan2(intersection2.y - center.y, intersection2.x - center.x)
-                            if sa <= ai2 <= ea:
-                                return True
+                            if ai2 < 0:
+                                ai2 += 2 * pi
+
+                            if extent > 0:
+                                if sa <= ai2 <= ea:
+                                    return True
                             else:
-                                drawCircle(canvas, intersection2.x, intersection2.y, "green")
-                 
+                                if ea <= ai2 <= sa:
+                                    return True
+   
         return False
     
 def drawCircle(canvas, x, y, color):
@@ -284,9 +305,9 @@ def drawArc(canvas, node1, node2, outline = "black", width = 1):
     center = findCenter(node1, node2)
     r = rxy(node1, node2)
     start = -degrees(atan2(node2.y - center.y, node2.x - center.x))
-    extent = -degrees(t)
+    extent = degrees(t)
 
-    canvasItem = canvas.create_arc(center.x - r, center.y - r, center.x + r, center.y + r, start = start, extent = -extent, outline = outline, width = width, style = tk.ARC)
+    canvasItem = canvas.create_arc(center.x - r, center.y - r, center.x + r, center.y + r, start = start, extent = extent, outline = outline, width = width, style = tk.ARC)
     canvas.pack()
     return canvasItem
 
@@ -326,7 +347,7 @@ while True:
             continue
 
         closestNode = replaceWithProximalNode(node, closestNode, nodes)
-        edge = Edge(closestNode, node)
+        edge = Edge(node1=closestNode, node2=node)
 
         node.cost = closestNode.cost + L(closestNode, node)
 
