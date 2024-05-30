@@ -198,16 +198,16 @@ def handleCollisions(nodes, newObstacles):
                     break
 
             if intersectionExists:
+                traverseAndReconstruct(nodes, nodes[nodes[i].children[j]])
+
                 del nodes[i].children[j]
                 del nodes[i].canvasItem[j]
-
-                traverseAndReconstruct(nodes, nodes[nodes[i].children[j]])
 
     newObstacles = []
 
 def traverseAndReconstruct(nodes, node):
     for child in node.children:
-        traverseAndReconstruct(nodes, child)
+        traverseAndReconstruct(nodes, nodes[child])
     
     canvas.delete(nodes[node.id].canvasNode)
 
@@ -348,10 +348,6 @@ createMap(canvas, nodes)
 
 pathNotFound = True
 while True:
-    if len(nodes) % 15 == 0 and len(obstacles) < 25:
-        createObstacle(obstacles, newObstacles)
-        handleCollisions(nodes, newObstacles)
-
     root.winfo_exists()
     root.update()
 
@@ -393,6 +389,10 @@ while True:
 
         node.canvasNode = drawCircle(canvas, node.x, node.y, "red")
         nodes[node.parent].canvasItem.append(drawArc(canvas, closestNode, node))
+
+        if len(nodes) % 15 == 0 and len(obstacles) < 25:
+            createObstacle(obstacles, newObstacles)
+            handleCollisions(nodes, newObstacles)
 
         if inGoal(node):
             pathNotFound = False
